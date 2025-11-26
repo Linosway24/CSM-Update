@@ -6109,7 +6109,13 @@
         }
         .header h1 {
             margin: 0;
-            font-size: 16pt;
+            font-size: 18pt;
+            font-weight: bold;
+        }
+        .header h2 {
+            margin: 5px 0;
+            font-size: 14pt;
+            font-weight: normal;
         }
         .header p {
             margin: 5px 0;
@@ -6235,10 +6241,11 @@
         }
     </style>
 </head>
-<body style="background-color: #ffffff !important; color: #000 !important;">
-    <div class="header">
-        <h1>CSM Hazard Assessment Form</h1>
-        <p>Export Date: ${date}</p>
+<body style="background-color: #ffffff !important; color: #000 !important; margin: 0 !important; padding: 0 !important;">
+    <div class="header" style="text-align: center !important; margin: 0 0 15px 0 !important; padding: 10px 0 !important; border-bottom: 2px solid #000 !important; background-color: #ffffff !important; color: #000 !important; width: 100% !important; display: block !important; visibility: visible !important; opacity: 1 !important;">
+        <h1 style="margin: 0 0 5px 0 !important; font-size: 18pt !important; font-weight: bold !important; color: #000 !important; background-color: #ffffff !important; display: block !important;">Contaminated Site Management (CSM) Hazard Assessment Form</h1>
+        <h2 style="margin: 5px 0 !important; font-size: 14pt !important; font-weight: normal !important; color: #000 !important; background-color: #ffffff !important; display: block !important;">CSM Spreadsheet</h2>
+        <p style="margin: 5px 0 0 0 !important; font-size: 10pt !important; color: #000 !important; background-color: #ffffff !important; display: block !important;">Export Date: ${date}</p>
     </div>
     <table style="background-color: #ffffff !important; border: 2px solid #000 !important; border-collapse: collapse !important;">
         <thead style="background-color: #f5f5f5 !important;">
@@ -6389,6 +6396,14 @@
                             console.log('Iframe loaded');
                             console.log('Body content length:', iframeBody.innerHTML.length);
                             console.log('Body scroll dimensions:', iframeBody.scrollWidth, 'x', iframeBody.scrollHeight);
+                            
+                            // Check if header is present
+                            const header = iframeBody.querySelector('.header');
+                            if (header) {
+                                console.log('Header found in iframe:', header.innerHTML.substring(0, 100));
+                            } else {
+                                console.warn('WARNING: Header not found in iframe body!');
+                            }
                             
                             // Debug: Check computed styles of table elements
                             const table = iframeBody.querySelector('table');
