@@ -9,6 +9,9 @@
     <script src="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Cesium.js"></script>
     <link href="https://cesium.com/downloads/cesiumjs/releases/1.133/Build/Cesium/Widgets/widgets.css" rel="stylesheet">
     
+    <!-- Load html3pdf for PDF export (fixes blank page issues) -->
+    <script src="https://cdn.jsdelivr.net/npm/html3pdf@latest/dist/html3pdf.bundle.min.js"></script>
+    
     <style>
         body {
             margin: 0;
@@ -940,7 +943,6 @@
                 <button class="csm-btn csm-btn-secondary" id="clearForm">Clear All</button>
                 <button class="csm-btn csm-btn-primary" id="riskLevelOrder">Risk Level Order</button>
                 <button class="csm-btn csm-btn-danger" id="riskMatrix">Risk Matrix</button>
-                <button class="csm-btn csm-btn-success" id="exportForm" style="display: none;">Export/Save</button>
             </div>
         </div>
 
@@ -4401,9 +4403,6 @@
                     this.showRiskMatrix();
                 });
 
-                document.getElementById('exportForm').addEventListener('click', () => {
-                    this.exportForm();
-                });
             }
 
             addInitialRow() {
@@ -4459,9 +4458,6 @@
                 const tbody = document.getElementById('csmFormBody');
                 const wrapper = document.querySelector('.csm-form-table-wrapper');
                 tbody.innerHTML = '';
-
-                // Update export button visibility
-                this.updateExportButtonVisibility();
 
                 // Calculate how many rows can fit in the available space
                 const maxVisibleRows = this.calculateMaxVisibleRows();
@@ -4864,7 +4860,6 @@
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
                 this.clearFormComparisonHighlights();
-                this.updateExportButtonVisibility();
                 // Don't re-render the table, just update the data
             }
 
@@ -4874,7 +4869,6 @@
                 const index = parseInt(e.target.dataset.index);
                 this.hazardRows[index][field] = e.target.value;
                 this.clearFormComparisonHighlights();
-                this.updateExportButtonVisibility();
                 // Don't re-render the table, just update the data
             }
 
@@ -5691,17 +5685,8 @@
                 this.hazardRows = [];
                 this.addInitialRow();
                 this.clearFormComparisonHighlights();
-                this.updateExportButtonVisibility();
             }
 
-            updateExportButtonVisibility() {
-                const exportButton = document.getElementById('exportForm');
-                if (exportButton) {
-                    // Show button only if there are rows with at least a source filled in
-                    const hasData = this.hazardRows.some(row => row.source && row.source.trim() !== '');
-                    exportButton.style.display = hasData ? 'inline-block' : 'none';
-                }
-            }
 
             showRiskLevelOrder() {
                 // Bring risk matrix to front if it's open
@@ -6002,6 +5987,7 @@
             }
 
             exportForm() {
+                console.log('exportForm called, hazardRows length:', this.hazardRows.length);
                 if (this.hazardRows.length === 0) {
                     alert('No data to export. Please add at least one hazard.');
                     return;
@@ -6068,6 +6054,7 @@
                 });
 
                 // Generate printable HTML
+                console.log('Generating export HTML with', exportData.length, 'items');
                 this.generateExportHTML(exportData);
             }
 
@@ -6103,12 +6090,12 @@
     <title>CSM Form Export - ${date}</title>
     <style>
         @page {
-            size: letter;
-            margin: 0.5in;
+            size: letter landscape;
+            margin: 0.3in;
         }
         body {
             font-family: Arial, sans-serif;
-            font-size: 9pt;
+            font-size: 8pt;
             line-height: 1.2;
             margin: 0;
             padding: 0;
@@ -6133,20 +6120,68 @@
             border-collapse: collapse;
             margin-bottom: 15px;
             page-break-inside: avoid;
+            table-layout: fixed;
+            font-size: 8pt;
+            background-color: #ffffff !important;
+            border: 2px solid #000 !important;
+        }
+        tbody, thead {
+            background-color: #ffffff !important;
+        }
+        thead tr {
+            background-color: #f5f5f5 !important;
+            border-bottom: 2px solid #000 !important;
+        }
+        tbody tr {
+            background-color: #ffffff !important;
+            border-bottom: 1px solid #ccc !important;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #f9f9f9 !important;
         }
         th {
-            background-color: #333;
-            color: #fff;
-            padding: 6px 4px;
-            text-align: left;
+            background-color: #f5f5f5 !important;
+            color: #000 !important;
+            padding: 4px 3px;
+            text-align: center;
             font-size: 8pt;
-            border: 1px solid #000;
+            border: 1px solid #333 !important;
+            white-space: normal;
+            word-wrap: break-word;
+            font-weight: bold;
+            border-top: 2px solid #000 !important;
+            border-left: 1px solid #333 !important;
+            border-right: 1px solid #333 !important;
+            line-height: 1.2;
+        }
+        th:first-child {
+            border-left: 2px solid #000 !important;
+        }
+        th:last-child {
+            border-right: 2px solid #000 !important;
         }
         td {
-            padding: 4px;
-            border: 1px solid #000;
+            background-color: inherit !important;
+            color: #000 !important;
+            padding: 3px;
+            border: 1px solid #ccc !important;
             font-size: 8pt;
-            vertical-align: top;
+            vertical-align: middle;
+            text-align: center;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            border-left: 1px solid #ccc !important;
+            border-right: 1px solid #ccc !important;
+            line-height: 1.2;
+        }
+        td:first-child {
+            border-left: 2px solid #000 !important;
+        }
+        td:last-child {
+            border-right: 2px solid #000 !important;
+        }
+        tbody tr:last-child td {
+            border-bottom: 2px solid #000 !important;
         }
         .hazard-id {
             font-weight: bold;
@@ -6154,16 +6189,16 @@
             width: 4%;
         }
         .correct {
-            background-color: #d4edda;
-            color: #155724;
+            background-color: #ffffff !important;
+            color: #000 !important;
         }
         .incorrect {
-            background-color: #f8d7da;
-            color: #721c24;
+            background-color: #ffffff !important;
+            color: #000 !important;
         }
         .empty {
-            background-color: #fff3cd;
-            color: #856404;
+            background-color: #ffffff !important;
+            color: #000 !important;
         }
         .student-answer {
             font-weight: bold;
@@ -6178,11 +6213,17 @@
             margin-top: 20px;
             padding: 10px;
             border: 1px solid #000;
-            background-color: #f8f9fa;
+            background-color: #ffffff !important;
         }
         .summary h3 {
             margin-top: 0;
             font-size: 12pt;
+            color: #000 !important;
+            background-color: transparent !important;
+        }
+        .summary p {
+            background-color: #ffffff !important;
+            color: #000 !important;
         }
         @media print {
             body {
@@ -6194,28 +6235,28 @@
         }
     </style>
 </head>
-<body>
+<body style="background-color: #ffffff !important; color: #000 !important;">
     <div class="header">
         <h1>CSM Hazard Assessment Form</h1>
         <p>Export Date: ${date}</p>
     </div>
-    <table>
-        <thead>
-            <tr>
-                <th class="hazard-id">ID</th>
-                <th style="width: 10%;">Source</th>
-                <th style="width: 10%;">Environmental Medium</th>
-                <th style="width: 8%;">Health Threat</th>
-                <th style="width: 8%;">Exposure Route</th>
-                <th style="width: 10%;">Population Affected</th>
-                <th style="width: 10%;">Existing Controls</th>
-                <th style="width: 10%;">Frequency/Duration</th>
-                <th style="width: 6%;">Severity</th>
-                <th style="width: 6%;">Probability</th>
-                <th style="width: 14%;">Risk</th>
+    <table style="background-color: #ffffff !important; border: 2px solid #000 !important; border-collapse: collapse !important;">
+        <thead style="background-color: #f5f5f5 !important;">
+            <tr style="background-color: #f5f5f5 !important; border-bottom: 2px solid #000 !important;">
+                <th class="hazard-id" style="background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; border-left: 2px solid #000 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">ID</th>
+                <th style="width: 10%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Source</th>
+                <th style="width: 10%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Environmental Medium</th>
+                <th style="width: 8%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Health Threat</th>
+                <th style="width: 8%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Exposure Route</th>
+                <th style="width: 10%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Population Affected</th>
+                <th style="width: 10%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Existing Controls</th>
+                <th style="width: 10%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Frequency/Duration</th>
+                <th style="width: 6%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Severity</th>
+                <th style="width: 6%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Probability</th>
+                <th style="width: 14%; background-color: #f5f5f5 !important; color: #000 !important; border: 1px solid #333 !important; border-right: 2px solid #000 !important; padding: 4px 3px; font-weight: bold; font-size: 8pt; line-height: 1.2; text-align: center;">Risk</th>
             </tr>
         </thead>
-        <tbody>`;
+        <tbody style="background-color: #ffffff !important;">`;
 
                 let totalFields = 0;
                 let correctFields = 0;
@@ -6225,10 +6266,16 @@
                                    'populationAffected', 'existingControls', 'frequencyDuration', 
                                    'severity', 'probability', 'risk'];
                     
-                    html += `<tr>`;
-                    html += `<td class="hazard-id">${item.studentAnswer.hazardId}</td>`;
+                    // Alternate row colors for spreadsheet look
+                    const rowIndex = exportData.indexOf(item);
+                    const isLastRow = rowIndex === exportData.length - 1;
+                    const rowBgColor = rowIndex % 2 === 0 ? '#ffffff' : '#f9f9f9';
+                    const bottomBorder = isLastRow ? '2px solid #000' : '1px solid #ccc';
+                    html += `<tr style="background-color: ${rowBgColor} !important; border-bottom: ${bottomBorder} !important;">`;
+                    const idCellBottomBorder = isLastRow ? '2px solid #000' : '1px solid #ccc';
+                    html += `<td class="hazard-id" style="background-color: ${rowBgColor} !important; color: #000 !important; border: 1px solid #ccc !important; border-left: 2px solid #000 !important; border-bottom: ${idCellBottomBorder} !important; font-weight: bold; text-align: center; padding: 3px; font-size: 8pt;">${item.studentAnswer.hazardId}</td>`;
                     
-                    fields.forEach(field => {
+                    fields.forEach((field, fieldIndex) => {
                         const comp = item.comparison[field];
                         totalFields++;
                         if (comp.isCorrect) correctFields++;
@@ -6241,16 +6288,19 @@
                             cellContent = '<em>Empty</em>';
                         } else if (comp.isCorrect) {
                             cellClass = 'correct';
-                            cellContent = '<span class=\"student-answer\">' + this.escapeHtml(comp.student) + '</span>';
+                            cellContent = '<span style="font-size: 8pt; color: #28a745;">✓</span> <span class=\"student-answer\">' + this.escapeHtml(comp.student) + '</span>';
                         } else {
                             cellClass = 'incorrect';
-                            cellContent = '<span class=\"student-answer\">' + this.escapeHtml(comp.student || '(empty)') + '</span>';
+                            cellContent = '<span style="font-size: 8pt; color: #dc3545;">✗</span> <span class=\"student-answer\">' + this.escapeHtml(comp.student || '(empty)') + '</span>';
                             if (comp.correct) {
-                                cellContent += '<br><span class=\"correct-answer\">Correct: ' + this.escapeHtml(comp.correct) + '</span>';
+                                cellContent += '<br><span style="font-size: 8pt; color: #28a745;">✓</span> <span class=\"correct-answer\" style="font-size: 8pt;">' + this.escapeHtml(comp.correct) + '</span>';
                             }
                         }
                         
-                        html += '<td class="' + cellClass + '">' + cellContent + '</td>';
+                        const cellBottomBorder = isLastRow ? '2px solid #000' : '1px solid #ccc';
+                        const isLastCell = fieldIndex === fields.length - 1;
+                        const cellRightBorder = isLastCell ? '2px solid #000' : '1px solid #ccc';
+                        html += '<td class="' + cellClass + '" style="background-color: ' + rowBgColor + ' !important; color: #000 !important; border: 1px solid #ccc !important; border-bottom: ' + cellBottomBorder + ' !important; border-right: ' + cellRightBorder + ' !important; padding: 3px; font-size: 8pt; line-height: 1.2; text-align: center; vertical-align: middle;">' + cellContent + '</td>';
                     });
                     
                     html += `</tr>`;
@@ -6259,29 +6309,234 @@
                 html += `
         </tbody>
     </table>
-    <div class="summary">
-        <h3>Summary</h3>
-        <p><strong>Total Hazards:</strong> ${exportData.length}</p>
-        <p><strong>Total Fields:</strong> ${totalFields}</p>
-        <p><strong>Correct Answers:</strong> ${correctFields} (${totalFields > 0 ? Math.round(correctFields / totalFields * 100) : 0}%)</p>
-        <p><strong>Incorrect/Empty Answers:</strong> ${totalFields - correctFields} (${totalFields > 0 ? Math.round((totalFields - correctFields) / totalFields * 100) : 0}%)</p>
-    </div>
-    <div class="no-print" style="text-align: center; margin-top: 20px;">
-        <button onclick="window.print()" style="padding: 10px 20px; font-size: 14px; cursor: pointer;">Print / Save as PDF</button>
+    <div class="summary" style="background-color: #ffffff !important; color: #000 !important;">
+        <h3 style="background-color: #ffffff !important; color: #000 !important;">Summary</h3>
+        <p style="background-color: #ffffff !important; color: #000 !important;"><strong>Total Hazards:</strong> ${exportData.length}</p>
+        <p style="background-color: #ffffff !important; color: #000 !important;"><strong>Total Fields:</strong> ${totalFields}</p>
+        <p style="background-color: #ffffff !important; color: #000 !important;"><strong>Correct Answers:</strong> ${correctFields} (${totalFields > 0 ? Math.round(correctFields / totalFields * 100) : 0}%)</p>
+        <p style="background-color: #ffffff !important; color: #000 !important;"><strong>Incorrect/Empty Answers:</strong> ${totalFields - correctFields} (${totalFields > 0 ? Math.round((totalFields - correctFields) / totalFields * 100) : 0}%)</p>
     </div>
 `;
                 html += '</' + 'body' + '>';
                 html += '</' + 'html' + '>';
 
-                // Open in new window for printing/saving
-                const printWindow = window.open('', '_blank');
-                printWindow.document.write(html);
-                printWindow.document.close();
-                
-                // Auto-trigger print dialog after a short delay
-                setTimeout(() => {
-                    printWindow.print();
-                }, 250);
+                // Create downloadable PDF using html3pdf with iframe rendering
+                console.log('Creating downloadable PDF using iframe...');
+                try {
+                    // Check if html3pdf is available
+                    if (typeof html3pdf === 'undefined') {
+                        // Fallback: open new window for print-to-PDF
+                        console.warn('html3pdf not available, using print dialog fallback');
+                        const printWindow = window.open('', '_blank');
+                        if (printWindow) {
+                            printWindow.document.write(html);
+                            printWindow.document.close();
+                            printWindow.onload = () => {
+                                setTimeout(() => {
+                                    printWindow.print();
+                                }, 250);
+                            };
+                        } else {
+                            alert('Please allow popups and try again, or use the browser print function.');
+                        }
+                        return;
+                    }
+                    
+                    // Create an iframe to render the full HTML document
+                    // This ensures all styles and content are properly rendered
+                    const iframe = document.createElement('iframe');
+                    iframe.id = 'pdf-export-iframe';
+                    iframe.style.cssText = `
+                        position: fixed;
+                        top: 0;
+                        left: 0;
+                        width: 1400px;
+                        height: 900px;
+                        border: none;
+                        visibility: hidden;
+                        z-index: -1;
+                    `;
+                    
+                    document.body.appendChild(iframe);
+                    
+                    // Write the full HTML to the iframe
+                    const iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
+                    iframeDoc.open();
+                    iframeDoc.write(html);
+                    iframeDoc.close();
+                    
+                    console.log('Iframe created, waiting for content to load...');
+                    console.log('HTML preview (first 500 chars):', html.substring(0, 500));
+                    
+                    // Debug: Log the style block to verify it's correct
+                    const styleMatch = html.match(/<style>([\s\S]*?)<\/style>/);
+                    if (styleMatch) {
+                        console.log('Style block found, checking for background colors...');
+                        const styleContent = styleMatch[1];
+                        if (styleContent.includes('background-color: #333') || styleContent.includes('background-color: #2c3e50')) {
+                            console.error('WARNING: Found dark blue background in style block!');
+                        } else {
+                            console.log('Style block looks good - no dark blue backgrounds found');
+                        }
+                    }
+                    
+                    // Function to generate PDF once iframe is ready
+                    const generatePDF = () => {
+                        try {
+                            const iframeBody = iframeDoc.body;
+                            const iframeWindow = iframe.contentWindow;
+                            
+                            console.log('Iframe loaded');
+                            console.log('Body content length:', iframeBody.innerHTML.length);
+                            console.log('Body scroll dimensions:', iframeBody.scrollWidth, 'x', iframeBody.scrollHeight);
+                            
+                            // Debug: Check computed styles of table elements
+                            const table = iframeBody.querySelector('table');
+                            if (table) {
+                                const computedStyle = iframeWindow.getComputedStyle(table);
+                                console.log('Table background:', computedStyle.backgroundColor);
+                                
+                                const th = table.querySelector('th');
+                                if (th) {
+                                    const thStyle = iframeWindow.getComputedStyle(th);
+                                    console.log('TH background:', thStyle.backgroundColor, 'color:', thStyle.color);
+                                }
+                                
+                                const summary = iframeBody.querySelector('.summary');
+                                if (summary) {
+                                    const summaryStyle = iframeWindow.getComputedStyle(summary);
+                                    console.log('Summary background:', summaryStyle.backgroundColor);
+                                }
+                                
+                                // Check for any elements with blue backgrounds
+                                const allElements = iframeBody.querySelectorAll('*');
+                                let foundBlue = false;
+                                allElements.forEach(el => {
+                                    const style = iframeWindow.getComputedStyle(el);
+                                    const bg = style.backgroundColor;
+                                    if (bg && (bg.includes('rgb(51, 51, 51)') || bg.includes('#333') || bg.includes('rgb(44, 62, 80)') || bg.includes('#2c3e50'))) {
+                                        console.warn('Found blue/dark background on:', el.tagName, el.className, 'background:', bg);
+                                        foundBlue = true;
+                                    }
+                                });
+                                if (!foundBlue) {
+                                    console.log('No blue backgrounds found in computed styles');
+                                }
+                            }
+                            
+                            // Wait a bit more for any dynamic content to render
+                            setTimeout(() => {
+                                try {
+                                    const opt = {
+                                        margin: [0.3, 0.3],
+                                        filename: `CSM_Form_Export_${new Date().toISOString().split('T')[0]}.pdf`,
+                                        image: { type: 'jpeg', quality: 0.98 },
+                                        html2canvas: { 
+                                            scale: 1.5,
+                                            useCORS: true,
+                                            logging: true,
+                                            letterRendering: true,
+                                            allowTaint: true,
+                                            backgroundColor: '#ffffff',
+                                            width: iframeBody.scrollWidth,
+                                            height: iframeBody.scrollHeight,
+                                            scrollX: 0,
+                                            scrollY: 0
+                                        },
+                                        jsPDF: { 
+                                            unit: 'in', 
+                                            format: 'letter', 
+                                            orientation: 'landscape'
+                                        }
+                                    };
+                                    
+                                    console.log('Starting PDF generation from iframe body...');
+                                    
+                                    // Debug option: Uncomment to open iframe in new window for inspection
+                                    // const debugWindow = window.open('', '_blank');
+                                    // if (debugWindow) {
+                                    //     debugWindow.document.write(html);
+                                    //     debugWindow.document.close();
+                                    // }
+                                    
+                                    // Generate PDF from iframe's body element
+                                    html3pdf().set(opt).from(iframeBody).save().then(() => {
+                                        console.log('PDF download completed successfully');
+                                        // Clean up
+                                        setTimeout(() => {
+                                            if (document.body.contains(iframe)) {
+                                                document.body.removeChild(iframe);
+                                            }
+                                        }, 1000);
+                                    }).catch((error) => {
+                                        console.error('PDF generation error:', error);
+                                        console.error('Error stack:', error.stack);
+                                        
+                                        // Clean up iframe
+                                        if (document.body.contains(iframe)) {
+                                            document.body.removeChild(iframe);
+                                        }
+                                        
+                                        // Fallback to print dialog
+                                        const printWindow = window.open('', '_blank');
+                                        if (printWindow) {
+                                            printWindow.document.write(html);
+                                            printWindow.document.close();
+                                            printWindow.onload = () => {
+                                                setTimeout(() => printWindow.print(), 250);
+                                            };
+                                        } else {
+                                            alert('PDF generation failed. Please allow popups to use print-to-PDF fallback.\n\nError: ' + error.message);
+                                        }
+                                    });
+                                } catch (e) {
+                                    console.error('Error in PDF generation:', e);
+                                    if (document.body.contains(iframe)) {
+                                        document.body.removeChild(iframe);
+                                    }
+                                    alert('Error: ' + e.message);
+                                }
+                            }, 500);
+                        } catch (e) {
+                            console.error('Error accessing iframe content:', e);
+                            if (document.body.contains(iframe)) {
+                                document.body.removeChild(iframe);
+                            }
+                            alert('Error accessing iframe: ' + e.message);
+                        }
+                    };
+                    
+                    // Wait for iframe to load
+                    if (iframeDoc.readyState === 'complete') {
+                        generatePDF();
+                    } else {
+                        iframe.onload = generatePDF;
+                        // Fallback timeout in case onload doesn't fire
+                        setTimeout(() => {
+                            if (iframeDoc.body && iframeDoc.body.innerHTML.length > 0) {
+                                generatePDF();
+                            } else {
+                                console.error('Iframe did not load properly');
+                                if (document.body.contains(iframe)) {
+                                    document.body.removeChild(iframe);
+                                }
+                                alert('Failed to load content in iframe. Trying print dialog fallback...');
+                                const printWindow = window.open('', '_blank');
+                                if (printWindow) {
+                                    printWindow.document.write(html);
+                                    printWindow.document.close();
+                                    printWindow.onload = () => {
+                                        setTimeout(() => printWindow.print(), 250);
+                                    };
+                                }
+                            }
+                        }, 2000);
+                    }
+                    
+                } catch (e) {
+                    console.error('Error creating PDF:', e);
+                    alert('Error: ' + e.message);
+                }
             }
 
             escapeHtml(text) {
@@ -6329,7 +6584,10 @@
                 modalContent.innerHTML = `
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
                         <h2 style="margin: 0; color: #2c3e50;">Your Submitted CSM Form</h2>
-                        <button id="closeComparison" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Close</button>
+                        <div style="display: flex; gap: 0.5rem;">
+                            <button id="exportSubmittedForm" style="background: #28a745; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer; font-weight: bold;">Export/Save</button>
+                            <button id="closeComparison" style="background: #dc3545; color: white; border: none; padding: 0.5rem 1rem; border-radius: 4px; cursor: pointer;">Close</button>
+                        </div>
                     </div>
                     <div style="margin: 0.5rem 0;">
                         <div>
@@ -6343,6 +6601,17 @@
                 
                 modal.appendChild(modalContent);
                 document.body.appendChild(modal);
+                
+                // Export/Save button handler
+                const exportButton = document.getElementById('exportSubmittedForm');
+                if (exportButton) {
+                    exportButton.addEventListener('click', () => {
+                        console.log('Export/Save button clicked from modal');
+                        this.exportForm();
+                    });
+                } else {
+                    console.error('Export button not found!');
+                }
                 
                 // Close modal handler
                 document.getElementById('closeComparison').addEventListener('click', () => {
